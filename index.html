@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Rabbit</title>
   
-  <!-- PWA -->
+  <!-- PWA иконки -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  
+  <!-- PWA манифест -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#f0f4f8">
+  
+  <!-- iOS мета-теги -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rabbit">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#667eea">
   
   <style>
     * {
@@ -444,53 +450,4 @@
         
         document.getElementById('avgSystolic').textContent = stats.avgSystolic || '—';
         document.getElementById('avgDiastolic').textContent = stats.avgDiastolic || '—';
-        document.getElementById('avgPulse').textContent = stats.avgPulse || '—';
-        
-        renderReadings(stats.readings || []);
-      } catch (err) {
-        console.error('Error loading stats:', err);
-        document.getElementById('readingsList').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
-      }
-    }
-    
-    function renderReadings(readings) {
-      const list = document.getElementById('readingsList');
-      
-      if (readings.length === 0) {
-        list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
-        return;
-      }
-      
-      list.innerHTML = readings.map(r => `
-        <div class="reading-item">
-          <div class="reading-main">
-            <div class="reading-values">${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span></div>
-            <div class="reading-meta">${r.date}, ${r.time}</div>
-          </div>
-          <span class="reading-period period-${r.period}">
-            ${r.period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
-          </span>
-        </div>
-      `).join('');
-    }
-    
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2500);
-    }
-    
-    // Инициализация
-    window.addEventListener('DOMContentLoaded', () => {
-      setPeriod(detectPeriod());
-      loadStats();
-    });
-    
-    // PWA Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
-  </script>
-</body>
-</html>
+        document.getElementById('avgPulse').textContent = stats
