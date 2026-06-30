@@ -285,6 +285,13 @@
       padding: 20px;
       color: #a0aec0;
     }
+    
+    .error-state {
+      text-align: center;
+      padding: 20px;
+      color: #e53e3e;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -367,7 +374,6 @@
     // Автоопределение периода по времени
     function detectPeriod() {
       const hour = new Date().getHours();
-      // Утро: 5:00 - 14:59, Вечер: 15:00 - 4:59
       return hour >= 5 && hour < 15 ? 'morning' : 'evening';
     }
     
@@ -376,15 +382,18 @@
       document.querySelectorAll('.period-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.period === period);
       });
+      console.log('Period set to:', period);
     }
     
     function setFilter(filter) {
       currentFilter = filter;
       document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(
+        const isActive = btn.textContent.toLowerCase().includes(
           filter === 'week' ? 'неделя' : filter === 'month' ? 'месяц' : 'всё'
-        ));
+        );
+        btn.classList.toggle('active', isActive);
       });
+      console.log('Filter set to:', filter);
       loadStats();
     }
     
@@ -409,33 +418,36 @@
         pulse: parseInt(pulse)
       };
       
+      console.log('Saving data:', data);
+      
       try {
         const btn = document.querySelector('.save-btn');
         btn.disabled = true;
         btn.textContent = 'Сохранение...';
         
-        await fetch(API_URL, {
+        const response = await fetch(API_URL, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(data)
         });
         
-        // Очищаем форму
-        document.getElementById('systolic').value = '';
-        document.getElementById('diastolic').value = '';
-        document.getElementById('pulse').value = '';
+        console.log('Response status:', response.status);
+        const result = await response.json();
+        console.log('Response:', result);
         
-        showToast('✓ Сохранено');
-        
-        // Перезагружаем данные через 2 секунды (даём время Google Sheets)
-        setTimeout(() => {
-          loadStats();
-        }, 2000);
+        if (result.success) {
+          document.getElementById('systolic').value = '';
+          document.getElementById('diastolic').value = '';
+          document.getElementById('pulse').value = '';
+          showToast('✓ Сохранено');
+          setTimeout(() => loadStats(), 1500);
+        } else {
+          showToast('Ошибка: ' + (result.error || 'неизвестная'));
+        }
         
       } catch (err) {
-        showToast('Ошибка сохранения');
-        console.error(err);
+        console.error('Save error:', err);
+        showToast('Ошибка сохранения: ' + err.message);
       } finally {
         const btn = document.querySelector('.save-btn');
         btn.disabled = false;
@@ -444,10 +456,79 @@
     }
     
     async function loadStats() {
+      const list = document.getElementById('readingsList');
+      list.innerHTML = '<div class="loading">Загрузка...</div>';
+      
+      console.log('Loading stats for period:', currentFilter);
+      
       try {
-        const response = await fetch(`${API_URL}?action=getStats&period=${currentFilter}`);
+        const url = `${API_URL}?action=getStats&period=${currentFilter}`;
+        console.log('Fetching:', url);
+        
+        const response = await fetch(url);
+        console.log('Stats response status:', response.status);
+        
         const stats = await response.json();
+        console.log('Stats:', stats);
+        
+        if (stats.error) {
+          list.innerHTML = `<div class="error-state">Ошибка: ${stats.error}</div>`;
+          return;
+        }
         
         document.getElementById('avgSystolic').textContent = stats.avgSystolic || '—';
         document.getElementById('avgDiastolic').textContent = stats.avgDiastolic || '—';
-        document.getElementById('avgPulse').textContent = stats
+        document.getElementById('avgPulse').textContent = stats.avgPulse || '—';
+        
+        renderReadings(stats.readings || []);
+      } catch (err) {
+        console.error('Load error:', err);
+        list.innerHTML = `<div class="error-state">Ошибка загрузки: ${err.message}<br><br>Проверьте:<br>1. URL API правильный<br>2. Apps Script задеплоен<br>3. Доступ: Anyone</div>`;
+      }
+    }
+    
+    function renderReadings(readings) {
+      const list = document.getElementById('readingsList');
+      
+      if (readings.length === 0) {
+        list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
+        return;
+      }
+      
+      list.innerHTML = readings.map(r => `
+        <div class="reading-item">
+          <div class="reading-main">
+            <div class="reading-values">${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span></div>
+            <div class="reading-meta">${r.date}, ${r.time}</div>
+          </div>
+          <span class="reading-period period-${r.period}">
+            ${r.period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
+          </span>
+        </div>
+      `).join('');
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+    
+    // Инициализация
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('Rabbit app initialized');
+      console.log('API URL:', API_URL);
+      setPeriod(detectPeriod());
+      loadStats();
+    });
+    
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('SW registration failed:', err);
+      });
+    }
+  </script>
+</body>
+</html>
