@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rabbit</title>
+  
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f0f4f8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rabbit">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+      min-height: 100vh;
+      color: #2d3748;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      padding: 20px 0 30px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .logo {
+      font-size: 36px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 16px;
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    
+    input[type="number"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 20px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f7fafc;
+      transition: all 0.2s;
+    }
+    
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+    }
+    
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .period-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .period-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f7fafc;
+      font-size: 15px;
+      font-weight: 500;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .period-btn.active {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+    
+    .save-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    
+    .save-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .save-btn:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-box {
+      text-align: center;
+      padding: 16px 8px;
+      background: #f7fafc;
+      border-radius: 12px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 4px;
+    }
+    
+    .period-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .filter-btn {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      color: #718096;
+      cursor: pointer;
+    }
+    
+    .filter-btn.active {
+      background: #edf2f7;
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .readings-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .reading-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #f0f4f8;
+    }
+    
+    .reading-item:last-child {
+      border-bottom: none;
+    }
+    
+    .reading-main {
+      flex: 1;
+    }
+    
+    .reading-values {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .reading-meta {
+      font-size: 13px;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+    
+    .reading-period {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .period-morning {
+      background: #fef5e7;
+      color: #d69e2e;
+    }
+    
+    .period-evening {
+      background: #e6fffa;
+      color: #319795;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #a0aec0;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #2d3748;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #a0aec0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="logo">🐰</span> Rabbit</h1>
+    </header>
+    
+    <!-- Форма ввода -->
+    <div class="card">
+      <h2>Новое измерение</h2>
+      
+      <div class="period-toggle">
+        <button class="period-btn active" data-period="morning" onclick="setPeriod('morning')">🌅 Утро</button>
+        <button class="period-btn" data-period="evening" onclick="setPeriod('evening')">🌆 Вечер</button>
+      </div>
+      
+      <div class="row">
+        <div class="input-group">
+          <label>Систол.</label>
+          <input type="number" id="systolic" placeholder="120" min="60" max="250">
+        </div>
+        <div class="input-group">
+          <label>Диастол.</label>
+          <input type="number" id="diastolic" placeholder="80" min="40" max="150">
+        </div>
+        <div class="input-group">
+          <label>Пульс</label>
+          <input type="number" id="pulse" placeholder="70" min="30" max="200">
+        </div>
+      </div>
+      
+      <button class="save-btn" onclick="saveReading()">Сохранить</button>
+    </div>
+    
+    <!-- Дашборд -->
+    <div class="card">
+      <h2>Статистика</h2>
+      
+      <div class="period-filter">
+        <button class="filter-btn active" onclick="setFilter('week')">Неделя</button>
+        <button class="filter-btn" onclick="setFilter('month')">Месяц</button>
+        <button class="filter-btn" onclick="setFilter('all')">Всё</button>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-value" id="avgSystolic">—</div>
+          <div class="stat-label">Систол.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="avgDiastolic">—</div>
+          <div class="stat-label">Диастол.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="avgPulse">—</div>
+          <div class="stat-label">Пульс</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- История -->
+    <div class="card">
+      <h2>История</h2>
+      <div id="readingsList" class="readings-list">
+        <div class="loading">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="toast" class="toast"></div>
+  
+  <script>
+    // ⚠️ ВСТАВЬ СЮДА URL СВОЕГО GOOGLE APPS SCRIPT WEB APP
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxoOFMn9TLHfqZb3Ab4lJMrX5vOUoyqgA6hmgOegJ_InarkGO7Zn6xSteXO4noMRZEVDg/exec';
+    
+    let currentPeriod = 'morning';
+    let currentFilter = 'week';
+    
+    // Автоопределение периода по времени
+    function detectPeriod() {
+      const hour = new Date().getHours();
+      // Утро: 5:00 - 14:59, Вечер: 15:00 - 4:59
+      return hour >= 5 && hour < 15 ? 'morning' : 'evening';
+    }
+    
+    function setPeriod(period) {
+      currentPeriod = period;
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.period === period);
+      });
+    }
+    
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(
+          filter === 'week' ? 'неделя' : filter === 'month' ? 'месяц' : 'всё'
+        ));
+      });
+      loadStats();
+    }
+    
+    async function saveReading() {
+      const systolic = document.getElementById('systolic').value;
+      const diastolic = document.getElementById('diastolic').value;
+      const pulse = document.getElementById('pulse').value;
+      
+      if (!systolic || !diastolic || !pulse) {
+        showToast('Заполните все поля');
+        return;
+      }
+      
+      const now = new Date();
+      const data = {
+        timestamp: now.toISOString(),
+        date: now.toLocaleDateString('ru-RU'),
+        time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        period: currentPeriod,
+        systolic: parseInt(systolic),
+        diastolic: parseInt(diastolic),
+        pulse: parseInt(pulse)
+      };
+      
+      try {
+        const btn = document.querySelector('.save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Сохранение...';
+        
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        // Очищаем форму
+        document.getElementById('systolic').value = '';
+        document.getElementById('diastolic').value = '';
+        document.getElementById('pulse').value = '';
+        
+        showToast('✓ Сохранено');
+        
+        // Перезагружаем данные через 2 секунды (даём время Google Sheets)
+        setTimeout(() => {
+          loadStats();
+        }, 2000);
+        
+      } catch (err) {
+        showToast('Ошибка сохранения');
+        console.error(err);
+      } finally {
+        const btn = document.querySelector('.save-btn');
+        btn.disabled = false;
+        btn.textContent = 'Сохранить';
+      }
+    }
+    
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_URL}?action=getStats&period=${currentFilter}`);
+        const stats = await response.json();
+        
+        document.getElementById('avgSystolic').textContent = stats.avgSystolic || '—';
+        document.getElementById('avgDiastolic').textContent = stats.avgDiastolic || '—';
+        document.getElementById('avgPulse').textContent = stats.avgPulse || '—';
+        
+        renderReadings(stats.readings || []);
+      } catch (err) {
+        console.error('Error loading stats:', err);
+        document.getElementById('readingsList').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
+      }
+    }
+    
+    function renderReadings(readings) {
+      const list = document.getElementById('readingsList');
+      
+      if (readings.length === 0) {
+        list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
+        return;
+      }
+      
+      list.innerHTML = readings.map(r => `
+        <div class="reading-item">
+          <div class="reading-main">
+            <div class="reading-values">${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span></div>
+            <div class="reading-meta">${r.date}, ${r.time}</div>
+          </div>
+          <span class="reading-period period-${r.period}">
+            ${r.period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
+          </span>
+        </div>
+      `).join('');
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+    
+    // Инициализация
+    window.addEventListener('DOMContentLoaded', () => {
+      setPeriod(detectPeriod());
+      loadStats();
+    });
+    
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
