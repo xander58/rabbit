@@ -488,25 +488,39 @@
     }
     
     function renderReadings(readings) {
-      const list = document.getElementById('readingsList');
-      
-      if (readings.length === 0) {
-        list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
-        return;
-      }
-      
-      list.innerHTML = readings.map(r => `
-        <div class="reading-item">
-          <div class="reading-main">
-            <div class="reading-values">${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span></div>
-            <div class="reading-meta">${r.date}, ${r.time}</div>
-          </div>
-          <span class="reading-period period-${r.period}">
-            ${r.period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
-          </span>
+  const list = document.getElementById('readingsList');
+  
+  console.log('Raw readings data:', readings); // Отладка
+  
+  if (readings.length === 0) {
+    list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
+    return;
+  }
+  
+  list.innerHTML = readings.map(r => {
+    // Пробуем разные варианты ключей
+    const systolic = r.systolic || r.Systolic || r.systole || r[4] || 0;
+    const diastolic = r.diastolic || r.Diastolic || r.diastole || r[5] || 0;
+    const pulse = r.pulse || r.Pulse || r.heartRate || r[6] || 0;
+    const period = r.period || r.Period || '';
+    const date = r.date || r.Date || '';
+    const time = r.time || r.Time || '';
+    
+    console.log('Parsed reading:', { systolic, diastolic, pulse, period }); // Отладка
+    
+    return `
+      <div class="reading-item">
+        <div class="reading-main">
+          <div class="reading-values">${systolic}/${diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${pulse}</span></div>
+          <div class="reading-meta">${date}, ${time}</div>
         </div>
-      `).join('');
-    }
+        <span class="reading-period period-${period}">
+          ${period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
     
     function showToast(message) {
       const toast = document.getElementById('toast');
