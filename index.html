@@ -446,7 +446,6 @@
   // Просто список без группировки
   let html = '';
   readings.forEach(r => {
-    const periodEmoji = r.period === 'morning' ? '🌅' : '🌆';
     const periodText = r.period === 'morning' ? 'Утро' : 'Вечер';
     const dateTime = formatDateTime(r.timestamp);
     
@@ -459,7 +458,7 @@
           <div style="font-size:13px;color:#718096;margin-top:4px">${dateTime}</div>
         </div>
         <span style="padding:4px 12px;background:${r.period === 'morning' ? '#fef5e7' : '#e6fffa'};color:${r.period === 'morning' ? '#d69e2e' : '#319795'};border-radius:6px;font-size:12px">
-          ${periodEmoji} ${periodText}
+          ${periodText}
         </span>
       </div>`;
   });
