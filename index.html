@@ -415,52 +415,73 @@
         renderReadings(data.readings?.slice(0, 10) || []);
       });
     }
-    
     function renderReadings(readings) {
-      const list = document.getElementById('readingsList');
-      
-      if (!readings.length) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;color:#a0aec0">Нет данных</div>';
-        return;
+  const list = document.getElementById('readingsList');
+  
+  if (!readings.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#a0aec0">Нет данных</div>';
+    return;
+  }
+  
+  // Форматируем дату и время
+  function formatDateTime(timestamp, date, time) {
+    try {
+      if (timestamp && timestamp !== '') {
+        const dt = new Date(timestamp);
+        const year = dt.getFullYear();
+        const month = String(dt.getMonth() + 1).padStart(2, '0');
+        const day = String(dt.getDate()).padStart(2, '0');
+        const hours = String(dt.getHours()).padStart(2, '0');
+        const minutes = String(dt.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} | ${hours}:${minutes}`;
+      } else if (date && time) {
+        // Если timestamp нет, используем date и time отдельно
+        return `${date} | ${time}`;
       }
-      
-      // Группируем по датам
-      const byDate = {};
-      readings.forEach(r => {
-        const date = r.date || new Date(r.timestamp).toLocaleDateString('ru-RU');
-        if (!byDate[date]) byDate[date] = [];
-        byDate[date].push(r);
-      });
-      
-      // Формируем HTML
-      let html = '';
-      for (const [date, items] of Object.entries(byDate)) {
-        html += `<div style="margin-bottom:20px">
-          <div style="font-weight:600;color:#4a5568;margin-bottom:8px">${date}</div>`;
-        
-        items.forEach(r => {
-          const periodEmoji = r.period === 'morning' ? '🌅' : '🌆';
-          const periodText = r.period === 'morning' ? 'Утро' : 'Вечер';
-          
-          html += `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f7fafc;border-radius:8px;margin-bottom:8px">
-              <div>
-                <div style="font-size:18px;font-weight:600;color:#2d3748">
-                  ${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span>
-                </div>
-                <div style="font-size:13px;color:#718096;margin-top:4px">${r.time || ''}</div>
-              </div>
-              <span style="padding:4px 12px;background:${r.period === 'morning' ? '#fef5e7' : '#e6fffa'};color:${r.period === 'morning' ? '#d69e2e' : '#319795'};border-radius:6px;font-size:12px">
-                ${periodEmoji} ${periodText}
-              </span>
-            </div>`;
-        });
-        
-        html += '</div>';
-      }
-      
-      list.innerHTML = html;
+    } catch (e) {
+      console.error('Date parse error:', e);
     }
+    return '—';
+  }
+  
+  // Группируем по датам
+  const byDate = {};
+  readings.forEach(r => {
+    const dateKey = r.date || new Date(r.timestamp).toLocaleDateString('ru-RU');
+    if (!byDate[dateKey]) byDate[dateKey] = [];
+    byDate[dateKey].push(r);
+  });
+  
+  // Формируем HTML
+  let html = '';
+  for (const [date, items] of Object.entries(byDate)) {
+    html += `<div style="margin-bottom:20px">
+      <div style="font-weight:600;color:#4a5568;margin-bottom:8px;font-size:14px">${date}</div>`;
+    
+    items.forEach(r => {
+      const periodEmoji = r.period === 'morning' ? '🌅' : '🌆';
+      const periodText = r.period === 'morning' ? 'Утро' : 'Вечер';
+      const dateTime = formatDateTime(r.timestamp, r.date, r.time);
+      
+      html += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f7fafc;border-radius:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:18px;font-weight:600;color:#2d3748">
+              ${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span>
+            </div>
+            <div style="font-size:13px;color:#718096;margin-top:4px">${dateTime}</div>
+          </div>
+          <span style="padding:4px 12px;background:${r.period === 'morning' ? '#fef5e7' : '#e6fffa'};color:${r.period === 'morning' ? '#d69e2e' : '#319795'};border-radius:6px;font-size:12px">
+            ${periodEmoji} ${periodText}
+          </span>
+        </div>`;
+    });
+    
+    html += '</div>';
+  }
+  
+  list.innerHTML = html;
+}
     
     function showToast(message) {
       const toast = document.getElementById('toast');
