@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Rabbit</title>
   
-  <!-- PWA иконки -->
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  
-  <!-- PWA манифест -->
   <link rel="manifest" href="manifest.json">
   
-  <!-- iOS мета-теги -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rabbit">
@@ -205,59 +201,8 @@
     }
     
     .readings-list {
-      max-height: 400px;
+      max-height: 600px;
       overflow-y: auto;
-    }
-    
-    .reading-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 0;
-      border-bottom: 1px solid #f0f4f8;
-    }
-    
-    .reading-item:last-child {
-      border-bottom: none;
-    }
-    
-    .reading-main {
-      flex: 1;
-    }
-    
-    .reading-values {
-      font-size: 18px;
-      font-weight: 600;
-      color: #2d3748;
-    }
-    
-    .reading-meta {
-      font-size: 13px;
-      color: #a0aec0;
-      margin-top: 4px;
-    }
-    
-    .reading-period {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    
-    .period-morning {
-      background: #fef5e7;
-      color: #d69e2e;
-    }
-    
-    .period-evening {
-      background: #e6fffa;
-      color: #319795;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #a0aec0;
     }
     
     .toast {
@@ -284,13 +229,6 @@
       text-align: center;
       padding: 20px;
       color: #a0aec0;
-    }
-    
-    .error-state {
-      text-align: center;
-      padding: 20px;
-      color: #e53e3e;
-      font-size: 14px;
     }
   </style>
 </head>
@@ -371,6 +309,20 @@
     let currentPeriod = 'morning';
     let currentFilter = 'week';
     
+    // JSONP для GET запросов (обходит CORS)
+    function jsonp(url, callback) {
+      const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        callback(data);
+      };
+      
+      const script = document.createElement('script');
+      script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+      document.body.appendChild(script);
+    }
+    
     // Автоопределение периода по времени
     function detectPeriod() {
       const hour = new Date().getHours();
@@ -382,7 +334,6 @@
       document.querySelectorAll('.period-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.period === period);
       });
-      console.log('Period set to:', period);
     }
     
     function setFilter(filter) {
@@ -393,7 +344,6 @@
         );
         btn.classList.toggle('active', isActive);
       });
-      console.log('Filter set to:', filter);
       loadStats();
     }
     
@@ -418,8 +368,6 @@
         pulse: parseInt(pulse)
       };
       
-      console.log('Saving data:', data);
-      
       try {
         const btn = document.querySelector('.save-btn');
         btn.disabled = true;
@@ -431,23 +379,16 @@
           body: JSON.stringify(data)
         });
         
-        console.log('Response status:', response.status);
-        const result = await response.json();
-        console.log('Response:', result);
+        document.getElementById('systolic').value = '';
+        document.getElementById('diastolic').value = '';
+        document.getElementById('pulse').value = '';
         
-        if (result.success) {
-          document.getElementById('systolic').value = '';
-          document.getElementById('diastolic').value = '';
-          document.getElementById('pulse').value = '';
-          showToast('✓ Сохранено');
-          setTimeout(() => loadStats(), 1500);
-        } else {
-          showToast('Ошибка: ' + (result.error || 'неизвестная'));
-        }
+        showToast('✓ Сохранено');
+        setTimeout(() => loadStats(), 1500);
         
       } catch (err) {
-        console.error('Save error:', err);
-        showToast('Ошибка сохранения: ' + err.message);
+        console.error(err);
+        showToast('Ошибка сохранения');
       } finally {
         const btn = document.querySelector('.save-btn');
         btn.disabled = false;
@@ -455,72 +396,71 @@
       }
     }
     
-    async function loadStats() {
+    function loadStats() {
       const list = document.getElementById('readingsList');
       list.innerHTML = '<div class="loading">Загрузка...</div>';
       
-      console.log('Loading stats for period:', currentFilter);
+      const url = `${API_URL}?action=getStats&period=${currentFilter}`;
       
-      try {
-        const url = `${API_URL}?action=getStats&period=${currentFilter}`;
-        console.log('Fetching:', url);
-        
-        const response = await fetch(url);
-        console.log('Stats response status:', response.status);
-        
-        const stats = await response.json();
-        console.log('Stats:', stats);
-        
-        if (stats.error) {
-          list.innerHTML = `<div class="error-state">Ошибка: ${stats.error}</div>`;
+      jsonp(url, (data) => {
+        if (data.error) {
+          list.innerHTML = '<div style="text-align:center;padding:40px;color:#a0aec0">Нет данных</div>';
           return;
         }
         
-        document.getElementById('avgSystolic').textContent = stats.avgSystolic || '—';
-        document.getElementById('avgDiastolic').textContent = stats.avgDiastolic || '—';
-        document.getElementById('avgPulse').textContent = stats.avgPulse || '—';
+        document.getElementById('avgSystolic').textContent = data.avgSystolic || '—';
+        document.getElementById('avgDiastolic').textContent = data.avgDiastolic || '—';
+        document.getElementById('avgPulse').textContent = data.avgPulse || '—';
         
-        renderReadings(stats.readings || []);
-      } catch (err) {
-        console.error('Load error:', err);
-        list.innerHTML = `<div class="error-state">Ошибка загрузки: ${err.message}<br><br>Проверьте:<br>1. URL API правильный<br>2. Apps Script задеплоен<br>3. Доступ: Anyone</div>`;
-      }
+        renderReadings(data.readings?.slice(0, 10) || []);
+      });
     }
     
     function renderReadings(readings) {
-  const list = document.getElementById('readingsList');
-  
-  console.log('Raw readings data:', readings); // Отладка
-  
-  if (readings.length === 0) {
-    list.innerHTML = '<div class="empty-state">Пока нет записей</div>';
-    return;
-  }
-  
-  list.innerHTML = readings.map(r => {
-    // Пробуем разные варианты ключей
-    const systolic = r.systolic || r.Systolic || r.systole || r[4] || 0;
-    const diastolic = r.diastolic || r.Diastolic || r.diastole || r[5] || 0;
-    const pulse = r.pulse || r.Pulse || r.heartRate || r[6] || 0;
-    const period = r.period || r.Period || '';
-    const date = r.date || r.Date || '';
-    const time = r.time || r.Time || '';
-    
-    console.log('Parsed reading:', { systolic, diastolic, pulse, period }); // Отладка
-    
-    return `
-      <div class="reading-item">
-        <div class="reading-main">
-          <div class="reading-values">${systolic}/${diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${pulse}</span></div>
-          <div class="reading-meta">${date}, ${time}</div>
-        </div>
-        <span class="reading-period period-${period}">
-          ${period === 'morning' ? '🌅 Утро' : '🌆 Вечер'}
-        </span>
-      </div>
-    `;
-  }).join('');
-}
+      const list = document.getElementById('readingsList');
+      
+      if (!readings.length) {
+        list.innerHTML = '<div style="text-align:center;padding:40px;color:#a0aec0">Нет данных</div>';
+        return;
+      }
+      
+      // Группируем по датам
+      const byDate = {};
+      readings.forEach(r => {
+        const date = r.date || new Date(r.timestamp).toLocaleDateString('ru-RU');
+        if (!byDate[date]) byDate[date] = [];
+        byDate[date].push(r);
+      });
+      
+      // Формируем HTML
+      let html = '';
+      for (const [date, items] of Object.entries(byDate)) {
+        html += `<div style="margin-bottom:20px">
+          <div style="font-weight:600;color:#4a5568;margin-bottom:8px">${date}</div>`;
+        
+        items.forEach(r => {
+          const periodEmoji = r.period === 'morning' ? '🌅' : '🌆';
+          const periodText = r.period === 'morning' ? 'Утро' : 'Вечер';
+          
+          html += `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f7fafc;border-radius:8px;margin-bottom:8px">
+              <div>
+                <div style="font-size:18px;font-weight:600;color:#2d3748">
+                  ${r.systolic}/${r.diastolic} <span style="color:#a0aec0;font-size:14px">♡ ${r.pulse}</span>
+                </div>
+                <div style="font-size:13px;color:#718096;margin-top:4px">${r.time || ''}</div>
+              </div>
+              <span style="padding:4px 12px;background:${r.period === 'morning' ? '#fef5e7' : '#e6fffa'};color:${r.period === 'morning' ? '#d69e2e' : '#319795'};border-radius:6px;font-size:12px">
+                ${periodEmoji} ${periodText}
+              </span>
+            </div>`;
+        });
+        
+        html += '</div>';
+      }
+      
+      list.innerHTML = html;
+    }
     
     function showToast(message) {
       const toast = document.getElementById('toast');
@@ -531,18 +471,9 @@
     
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
-      console.log('Rabbit app initialized');
-      console.log('API URL:', API_URL);
       setPeriod(detectPeriod());
       loadStats();
     });
-    
-    // PWA Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err => {
-        console.log('SW registration failed:', err);
-      });
-    }
   </script>
 </body>
 </html>
